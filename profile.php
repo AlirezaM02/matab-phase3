@@ -28,7 +28,7 @@ $user_id = $_SESSION['user_id'];
         .header {
             background: linear-gradient(90deg, #007bff, #0d47a1);
             color: white;
-            padding: 0.5rem;
+            padding: 0.5rem 1rem;
             display: flex;
             align-items: center;
             width: 100%;
@@ -44,8 +44,12 @@ $user_id = $_SESSION['user_id'];
             text-align: center;
             margin: 0;
         }
+        .header-buttons {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
         .profile-btn {
-            margin-left: auto;
             padding: 10px 20px;
             background: #1a237e;
             color: white;
@@ -54,6 +58,7 @@ $user_id = $_SESSION['user_id'];
             cursor: pointer;
             transition: background 0.3s ease;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-decoration: none;
         }
         .profile-btn:hover {
             background: #0d47a1;
@@ -67,20 +72,23 @@ $user_id = $_SESSION['user_id'];
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
         .profile-section {
-            margin-bottom: 20px;
+            margin-bottom: 30px; /* Increased margin */
         }
         .profile-section h2 {
             color: #0d47a1;
-            margin-bottom: 10px;
+            margin-bottom: 15px; /* Increased margin */
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
         }
         .profile-section input {
             width: 100%;
             padding: 10px;
-            margin: 5px 0;
+            margin: 5px 0 15px 0; /* Added bottom margin */
             border: 1px solid #ddd;
             border-radius: 5px;
+            box-sizing: border-box;
         }
-        .profile-section button {
+        .profile-section button, .support-btn-link {
             padding: 10px 20px;
             background: #007bff;
             color: white;
@@ -88,8 +96,10 @@ $user_id = $_SESSION['user_id'];
             border-radius: 5px;
             cursor: pointer;
             font-size: 1rem;
+            text-decoration: none;
+            display: inline-block;
         }
-        .profile-section button:hover {
+        .profile-section button:hover, .support-btn-link:hover {
             background: #0d47a1;
         }
         .bookings-table {
@@ -108,71 +118,45 @@ $user_id = $_SESSION['user_id'];
         }
         .back-btn {
             display: block;
+            width: fit-content;
             margin: 20px auto;
             padding: 10px 20px;
-            background: #007bff;
+            background: #6c757d;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
             text-align: center;
             font-size: 1rem;
+            text-decoration: none;
         }
         .back-btn:hover {
-            background: #0d47a1;
+            background: #5a6268;
         }
-        .error {
-            color: red;
-            text-align: center;
-            margin: 10px 0;
-        }
-        .success {
-            color: green;
-            text-align: center;
-            margin: 10px 0;
-        }
+        .error { color: red; text-align: center; margin: 10px 0; }
+        .success { color: green; text-align: center; margin: 10px 0; }
     </style>
     <script>
-        // تمرير user_id من PHP إلى JavaScript
         const userId = <?php echo json_encode($user_id); ?>;
 
-        function openHomePage() {
-            window.location.href = 'index.php';
-        }
+        function updateHeaderButtons() {
+            const authButton = document.getElementById('authButton');
+            authButton.textContent = 'خروج';
+            authButton.onclick = () => window.location.href = 'logout.php';
 
-        function updateLoginButton() {
-            console.log('تنفيذ updateLoginButton، معرف المستخدم:', userId);
-            const button = document.getElementById('authButton');
-            button.className = 'profile-btn';
-            button.textContent = 'خروج';
-            button.onclick = function() {
-                window.location.href = 'logout.php';
-            };
+            const supportButton = document.getElementById('supportButton');
+            supportButton.style.display = 'inline-block';
         }
 
         async function loadProfile() {
             if (!userId) {
-                document.getElementById('profileInfo').innerHTML = `<p class="error">لطفاً وارد حساب کاربری خود شوید</p>`;
                 window.location.href = 'login.php';
                 return;
             }
             try {
-                const response = await fetch(`get_profile.php?user_id=${encodeURIComponent(userId)}`, {
-                    method: 'GET',
-                    headers: { 'Accept': 'application/json' }
-                });
-                const text = await response.text();
-                console.log('استجابة get_profile.php:', text);
-                if (!response.ok) {
-                    throw new Error(`خطای شبکه: ${response.status} ${response.statusText}`);
-                }
-                let user;
-                try {
-                    user = JSON.parse(text);
-                } catch (e) {
-                    console.error('خطأ في تحليل JSON:', e.message, 'النص المستلم:', text);
-                    throw new Error('استجابة غير صالحة من الخادم: ' + e.message);
-                }
+                const response = await fetch(`get_profile.php?user_id=${encodeURIComponent(userId)}`);
+                const user = await response.json();
+                
                 if (user.error) {
                     document.getElementById('profileInfo').innerHTML = `<p class="error">${user.error}</p>`;
                     return;
@@ -182,23 +166,18 @@ $user_id = $_SESSION['user_id'];
                 document.getElementById('insurance_number').value = user.insurance_number || '';
                 document.getElementById('email').value = user.email || '';
             } catch (error) {
-                document.getElementById('profileInfo').innerHTML = `<p class="error">خطا في تحميل المعلومات: ${error.message}</p>`;
-                console.error('خطأ في loadProfile:', error);
+                document.getElementById('profileInfo').innerHTML = `<p class="error">خطا در بارگذاری اطلاعات: ${error.message}</p>`;
             }
         }
 
         async function updateProfile() {
-            if (!userId) {
-                document.getElementById('updateMessage').innerHTML = `<p class="error">لطفاً وارد حساب کاربری خود شوید</p>`;
-                return;
-            }
             const name = document.getElementById('name').value.trim();
             const national_id = document.getElementById('national_id').value.trim();
             const insurance_number = document.getElementById('insurance_number').value.trim();
             const email = document.getElementById('email').value.trim();
 
             if (!name || !national_id || !email) {
-                document.getElementById('updateMessage').innerHTML = `<p class="error">يرجى ملء جميع الحقول المطلوبة</p>`;
+                document.getElementById('updateMessage').innerHTML = `<p class="error">لطفاً همه فیلدهای ستاره‌دار را پر کنید.</p>`;
                 return;
             }
 
@@ -208,74 +187,45 @@ $user_id = $_SESSION['user_id'];
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_id: userId, name, national_id, insurance_number, email })
                 });
-                const text = await response.text();
-                console.log('استجابة update_profile.php:', text);
-                let result;
-                try {
-                    result = JSON.parse(text);
-                } catch (e) {
-                    console.error('خطأ في تحليل JSON:', e.message, 'النص المستلم:', text);
-                    throw new Error('استجابة غير صالحة من الخادم: ' + e.message);
-                }
+                const result = await response.json();
                 const messageDiv = document.getElementById('updateMessage');
                 if (result.success) {
-                    messageDiv.innerHTML = '<p class="success">تم تحديث المعلومات بنجاح</p>';
+                    messageDiv.innerHTML = '<p class="success">اطلاعات با موفقیت به‌روزرسانی شد.</p>';
                 } else {
-                    messageDiv.innerHTML = `<p class="error">خطأ: ${result.error}</p>`;
+                    messageDiv.innerHTML = `<p class="error">خطا: ${result.error}</p>`;
                 }
             } catch (error) {
-                document.getElementById('updateMessage').innerHTML = `<p class="error">خطأ في التحديث: ${error.message}</p>`;
-                console.error('خطأ في updateProfile:', error);
+                document.getElementById('updateMessage').innerHTML = `<p class="error">خطا در به‌روزرسانی: ${error.message}</p>`;
             }
         }
 
         async function loadBookings() {
-            if (!userId) {
-                document.getElementById('bookingsTableBody').innerHTML = `<tr><td colspan="4" class="error">لطفاً وارد حساب کاربری خود شوید</td></tr>`;
-                return;
-            }
             try {
-                const response = await fetch(`get_bookings.php?user_id=${encodeURIComponent(userId)}`, {
-                    method: 'GET',
-                    headers: { 'Accept': 'application/json' }
-                });
-                const text = await response.text();
-                console.log('استجابة get_bookings.php:', text);
-                if (!response.ok) {
-                    throw new Error(`خطای شبکه: ${response.status} ${response.statusText}`);
-                }
-                let bookings;
-                try {
-                    bookings = JSON.parse(text);
-                } catch (e) {
-                    console.error('خطأ في تحليل JSON:', e.message, 'النص المستلم:', text);
-                    throw new Error('استجابة غير صالحة من الخادم: ' + e.message);
-                }
+                const response = await fetch(`get_bookings.php?user_id=${encodeURIComponent(userId)}`);
+                const bookings = await response.json();
                 const tableBody = document.getElementById('bookingsTableBody');
                 tableBody.innerHTML = '';
                 if (Array.isArray(bookings) && bookings.length > 0) {
                     bookings.forEach(booking => {
                         const row = document.createElement('tr');
                         row.innerHTML = `
-                            <td>${booking.booking_date || 'غير متوفر'}</td>
+                            <td>${booking.booking_date || 'N/A'}</td>
                             <td>${booking.booking_type === 'doctor' ? 'پزشک' : booking.booking_type === 'lab' ? 'آزمایشگاه' : booking.booking_type === 'clinic' ? 'کلینیک' : 'تصویربرداری'}</td>
-                            <td>${booking.target_name || 'غير متوفر'}</td>
-                            <td>${booking.status === 'pending' ? 'في انتظار التأكيد' : booking.status === 'confirmed' ? 'تم التأكيد' : 'تم الإلغاء'}</td>
+                            <td>${booking.target_name || 'N/A'}</td>
+                            <td>${booking.status === 'pending' ? 'در انتظار تأیید' : booking.status === 'confirmed' ? 'تأیید شده' : 'لغو شده'}</td>
                         `;
                         tableBody.appendChild(row);
                     });
                 } else {
-                    tableBody.innerHTML = '<tr><td colspan="4">لا توجد حجوزات</td></tr>';
+                    tableBody.innerHTML = '<tr><td colspan="4">هیچ رزروی یافت نشد.</td></tr>';
                 }
             } catch (error) {
-                document.getElementById('bookingsTableBody').innerHTML = `<tr><td colspan="4" class="error">خطأ في تحميل الحجوزات: ${error.message}</td></tr>`;
-                console.error('خطأ في loadBookings:', error);
+                document.getElementById('bookingsTableBody').innerHTML = `<tr><td colspan="4" class="error">خطا در بارگذاری رزروها</td></tr>`;
             }
         }
 
         window.addEventListener('DOMContentLoaded', () => {
-            console.log('تحميل صفحة الملف الشخصي، معرف المستخدم:', userId);
-            updateLoginButton();
+            updateHeaderButtons();
             loadProfile();
             loadBookings();
         });
@@ -287,7 +237,10 @@ $user_id = $_SESSION['user_id'];
             <img src="https://i.postimg.cc/J0dCfhLH/1111.jpg" alt="لوگو" class="logo">
         </a>
         <h4 class="title">مطب - با ما، درمان نزدیک‌تر از همیشه</h4>
-        <button id="authButton" class="profile-btn"></button>
+        <div class="header-buttons">
+            <a href="support.php" id="supportButton" class="profile-btn" style="display: none;">پشتیبانی</a>
+            <button id="authButton" class="profile-btn"></button>
+        </div>
     </header>
     <div class="profile-container">
         <div class="profile-section" id="profileInfo">
@@ -299,11 +252,11 @@ $user_id = $_SESSION['user_id'];
             <button onclick="updateProfile()">ذخیره تغییرات</button>
             <div id="updateMessage"></div>
         </div>
+        
         <div class="profile-section">
             <h2>سوابق رزرو</h2>
             <table class="bookings-table">
                 <thead>
-                    <thead>
                     <tr>
                         <th>تاریخ رزرو</th>
                         <th>نوع رزرو</th>
@@ -314,7 +267,15 @@ $user_id = $_SESSION['user_id'];
                 <tbody id="bookingsTableBody"></tbody>
             </table>
         </div>
+        
+        <!-- EDIT: Added Support Section -->
+        <div class="profile-section">
+            <h2>پشتیبانی</h2>
+            <p>برای ارتباط با تیم پشتیبانی یا پیگیری تیکت‌های خود از دکمه زیر استفاده کنید.</p>
+            <a href="support.php" class="support-btn-link">ورود به مرکز پشتیبانی</a>
+        </div>
+
     </div>
-    <button class="back-btn" onclick="openHomePage()">بازگشت به صفحه اصلی</button>
+    <a href="index.php" class="back-btn">بازگشت به صفحه اصلی</a>
 </body>
 </html>

@@ -21,7 +21,7 @@ $is_logged_in = isset($_SESSION['user_id']);
         .header {
             background: linear-gradient(90deg, #007bff, #0d47a1);
             color: white;
-            padding: 0.5rem;
+            padding: 0.5rem 1rem; /* Added more padding */
             display: flex;
             align-items: center;
             width: 100%;
@@ -52,7 +52,6 @@ $is_logged_in = isset($_SESSION['user_id']);
             background: #0d47a1;
         }
         .login-btn2, .profile-btn {
-            margin-left: auto;
             padding: 10px 20px;
             background: #1a237e;
             color: white;
@@ -61,9 +60,15 @@ $is_logged_in = isset($_SESSION['user_id']);
             cursor: pointer;
             transition: background 0.3s ease;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-decoration: none; /* For <a> tags styled as buttons */
         }
         .login-btn2:hover, .profile-btn:hover {
             background: #0d47a1;
+        }
+        .header-buttons {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         .search-container {
             text-align: center;
@@ -199,97 +204,69 @@ $is_logged_in = isset($_SESSION['user_id']);
         const isLoggedIn = <?php echo json_encode($is_logged_in); ?>;
 
         function updateLoginButton() {
-            console.log('تنفيذ updateLoginButton، حالة تسجيل الدخول:', isLoggedIn); // للتصحيح
-            const button = document.getElementById('authButton');
+            const authButton = document.getElementById('authButton');
+            const supportButton = document.getElementById('supportButton');
+            
             if (isLoggedIn) {
-                button.className = 'profile-btn';
-                button.textContent = 'پروفایل';
-                button.onclick = openProfilePage;
+                authButton.className = 'profile-btn';
+                authButton.textContent = 'پروفایل';
+                authButton.onclick = openProfilePage;
+                supportButton.style.display = 'inline-block'; // Show support button for logged-in users
             } else {
-                button.className = 'login-btn2';
-                button.textContent = 'ورود';
-                button.onclick = openSigninPage;
+                authButton.className = 'login-btn2';
+                authButton.textContent = 'ورود / ثبت‌نام';
+                authButton.onclick = openSigninPage;
+                supportButton.style.display = 'none'; // Hide support button for guests
             }
         }
 
         async function loadDoctors() {
-    console.log('جلب الأطباء من: get_doctors.php');
-    try {
-        
-        const responseDefault = await fetch('get_doctors.php', { method: 'GET', headers: { 'Accept': 'application/json' } });
-        if (!responseDefault.ok) {
-            throw new Error(`خطای شبکه: ${responseDefault.status} ${responseDefault.statusText}`);
+            try {
+                const responseDefault = await fetch('get_doctors.php');
+                const defaultDoctors = await responseDefault.json();
+                const firstEightDoctors = defaultDoctors.slice(0, 8);
+
+                const responseTop = await fetch('get_top_doctors_by_bookings.php');
+                const topDoctors = await responseTop.json();
+
+                const topDoctorsFiltered = topDoctors.filter(doctor => !firstEightDoctors.some(firstDoctor => firstDoctor.id === doctor.id)).slice(0, 8);
+                const doctorsToDisplay = [...firstEightDoctors, ...topDoctorsFiltered];
+
+                const doctorsContainer = document.getElementById("doctorsContainer");
+                doctorsContainer.innerHTML = '';
+                if (doctorsToDisplay.length > 0) {
+                    doctorsToDisplay.forEach(doctor => {
+                        const card = document.createElement('div');
+                        card.className = 'grid-item';
+                        card.innerHTML = `
+                            <img src="${doctor.image || 'https://placehold.co/150x150/e0e0e0/757575?text=Doctor'}" alt="${doctor.name}" class="grid-img" onerror="this.src='https://placehold.co/150x150/e0e0e0/757575?text=Doctor'">
+                            <h3 class="grid-title2">${doctor.name}</h3>
+                            <p class="grid-title">${doctor.specialty}</p>
+                        `;
+                        card.addEventListener('click', () => openDoctorPage(doctor.id));
+                        doctorsContainer.appendChild(card);
+                    });
+                } else {
+                    doctorsContainer.innerHTML = '<p>هیچ پزشکی موجود نیست</p>';
+                }
+            } catch (error) {
+                console.error("خطا در بارگذاری پزشکان:", error);
+                document.getElementById("doctorsContainer").innerHTML = `<p class="error">خطا در بارگذاری پزشکان</p>`;
+            }
         }
-        const defaultDoctors = await responseDefault.json();
-        const firstEightDoctors = defaultDoctors.slice(0, 8);
-
-        
-        const responseTop = await fetch('get_top_doctors_by_bookings.php', { method: 'GET', headers: { 'Accept': 'application/json' } });
-        if (!responseTop.ok) {
-            throw new Error(`خطای شبکه: ${responseTop.status} ${responseTop.statusText}`);
-        }
-        const topDoctors = await responseTop.json();
-
-        
-        const topDoctorsFiltered = topDoctors.filter(doctor => !firstEightDoctors.some(firstDoctor => firstDoctor.id === doctor.id)).slice(0, 8);
-
-        
-        const doctorsToDisplay = [...firstEightDoctors, ...topDoctorsFiltered];
-
-        const doctorsContainer = document.getElementById("doctorsContainer");
-        doctorsContainer.innerHTML = '';
-        if (doctorsToDisplay.length > 0) {
-            doctorsToDisplay.forEach(doctor => {
-                const card = document.createElement('div');
-                card.className = 'grid-item';
-                card.dataset.id = doctor.id;
-                card.dataset.name = doctor.name;
-                card.innerHTML = `
-                    <img src="${doctor.image}" 
-                         alt="${doctor.name}" 
-                         class="grid-img"
-                         onerror="this.src='https://via.placeholder.com/150'">
-                    <h3 class="grid-title2">${doctor.name}</h3>
-                    <p class="grid-title">${doctor.specialty}</p>
-                `;
-                card.addEventListener('click', () => {
-                    openDoctorPage(doctor.id);
-                });
-                doctorsContainer.appendChild(card);
-            });
-        } else {
-            doctorsContainer.innerHTML = '<p>هیچ پزشکی موجود نیست</p>';
-        }
-    } catch (error) {
-        console.error("خطا در بارگذاری پزشکان:", error);
-        document.getElementById("doctorsContainer").innerHTML = `
-            <p class="error">خطا در بارگذاری پزشکان: ${error.message || 'خطای ناشناخته'}</p>
-        `;
-    }
-}
 
         async function loadCities() {
-            console.log('جلب المدن');
             try {
-                const response = await fetch('get_cities.php', { method: 'GET', headers: { 'Accept': 'application/json' } });
-                if (!response.ok) {
-                    throw new Error(`خطای شبکه: ${response.status} ${response.statusText}`);
-                }
+                const response = await fetch('get_cities.php');
                 const cities = await response.json();
-                console.log('استجابة المدن:', cities);
                 const citysContainer = document.getElementById("citysContainer");
                 citysContainer.innerHTML = '';
                 if (Array.isArray(cities) && cities.length > 0) {
                     cities.forEach(city => {
                         const cityDiv = document.createElement('div');
                         cityDiv.className = 'grid-item3';
-                        cityDiv.dataset.id = city.id;
-                        cityDiv.dataset.name = city.name;
                         cityDiv.innerHTML = `<div class="grid-title3">${city.name}</div>`;
-                        cityDiv.addEventListener('click', () => {
-                            console.log('النقر على المدينة:', city.name);
-                            window.location.href = `filtered_doctors.php?city=${encodeURIComponent(city.name)}`;
-                        });
+                        cityDiv.addEventListener('click', () => window.location.href = `filtered_doctors.php?city=${encodeURIComponent(city.name)}`);
                         citysContainer.appendChild(cityDiv);
                     });
                 } else {
@@ -297,37 +274,25 @@ $is_logged_in = isset($_SESSION['user_id']);
                 }
             } catch (error) {
                 console.error("خطا در بارگذاری شهرها:", error);
-                document.getElementById("citysContainer").innerHTML = `
-                    <p class="error">خطا در بارگذاری شهرها: ${error.message || 'خطای ناشناخته'}</p>
-                `;
+                document.getElementById("citysContainer").innerHTML = `<p class="error">خطا در بارگذاری شهرها</p>`;
             }
         }
 
         async function loadSpecialties() {
-            console.log('جلب التخصصات');
             try {
-                const response = await fetch('get_specialties.php', { method: 'GET', headers: { 'Accept': 'application/json' } });
-                if (!response.ok) {
-                    throw new Error(`خطای شبکه: ${response.status} ${response.statusText}`);
-                }
+                const response = await fetch('get_specialties.php');
                 const specialties = await response.json();
-                console.log('استجابة التخصصات:', specialties);
                 const SpecialtiesContainer = document.getElementById("SpecialtiesContainer");
                 SpecialtiesContainer.innerHTML = '';
                 if (Array.isArray(specialties) && specialties.length > 0) {
                     specialties.forEach(specialty => {
                         const specialtyDiv = document.createElement('div');
                         specialtyDiv.className = 'grid-item2';
-                        specialtyDiv.dataset.id = specialty.id;
-                        specialtyDiv.dataset.name = specialty.name;
                         specialtyDiv.innerHTML = `
-                            <img src="${specialty.image}" class="grid-img2" onerror="this.src='https://via.placeholder.com/75'">
+                            <img src="${specialty.image || 'https://placehold.co/75x75/e0e0e0/757575?text=Spec'}" class="grid-img2" onerror="this.src='https://placehold.co/75x75/e0e0e0/757575?text=Spec'">
                             <div class="grid-title2">${specialty.name}</div>
                         `;
-                        specialtyDiv.addEventListener('click', () => {
-                            console.log('النقر على التخصص:', specialty.name);
-                            window.location.href = `filtered_doctors.php?specialty=${encodeURIComponent(specialty.name)}`;
-                        });
+                        specialtyDiv.addEventListener('click', () => window.location.href = `filtered_doctors.php?specialty=${encodeURIComponent(specialty.name)}`);
                         SpecialtiesContainer.appendChild(specialtyDiv);
                     });
                 } else {
@@ -335,68 +300,31 @@ $is_logged_in = isset($_SESSION['user_id']);
                 }
             } catch (error) {
                 console.error("خطا در بارگذاری تخصص‌ها:", error);
-                document.getElementById("SpecialtiesContainer").innerHTML = `
-                    <p class="error">خطا در بارگذاری تخصص‌ها: ${error.message || 'خطای ناشناخته'}</p>
-                `;
+                document.getElementById("SpecialtiesContainer").innerHTML = `<p class="error">خطا در بارگذاری تخصص‌ها</p>`;
             }
         }
 
-        function openDoctorPage(doctorId) {
-            console.log('فتح صفحة الطبيب:', doctorId);
-            window.location.href = `doctor_details.php?id=${doctorId}`;
-        }
-
-        function openSigninPage() {
-            window.location.href = `login.php`;
-        }
-
-        function openProfilePage() {
-            window.location.href = `profile.php`;
-        }
-
-        function openHomePage() {
-            window.location.href = `index.php`;
-        }
-
-        function openClinicPage() {
-            window.location.href = `clinic.php`;
-        }
-
-        function openImagingPage() {
-            window.location.href = `imaging.php`;
-        }
-
-        function openLaboratoryPage() {
-            window.location.href = `laboratory.php`;
-        }
+        function openDoctorPage(doctorId) { window.location.href = `doctor_details.php?id=${doctorId}`; }
+        function openSigninPage() { window.location.href = `login.php`; }
+        function openProfilePage() { window.location.href = `profile.php`; }
+        function openClinicPage() { window.location.href = `clinic.php`; }
+        function openImagingPage() { window.location.href = `imaging.php`; }
+        function openLaboratoryPage() { window.location.href = `laboratory.php`; }
 
         function handleSearch() {
             const searchInput = document.querySelector('.search-box').value.trim();
             if (searchInput) {
                 window.location.href = `search_results.php?q=${encodeURIComponent(searchInput)}`;
             } else {
-                alert('لطفاً كلمة للبحث أدخل');
-            }
-        }
-
-        async function loadAllData() {
-            console.log('بدء تحميل جميع البيانات');
-            try {
-                await Promise.all([
-                    loadDoctors(),
-                    loadCities(),
-                    loadSpecialties()
-                ]);
-                console.log('تم تحميل جميع البيانات بنجاح');
-            } catch (error) {
-                console.error("خطا في تحميل البيانات:", error);
+                alert('لطفاً عبارتی برای جستجو وارد کنید.');
             }
         }
 
         window.addEventListener('DOMContentLoaded', () => {
             updateLoginButton();
-            loadAllData();
-      
+            loadDoctors();
+            loadCities();
+            loadSpecialties();
             document.querySelector('.login-btn').addEventListener('click', handleSearch);
         });
     </script>
@@ -407,11 +335,16 @@ $is_logged_in = isset($_SESSION['user_id']);
             <img src="https://i.postimg.cc/J0dCfhLH/1111.jpg" alt="لوگو" class="logo">
         </a>
         <h4 class="title">مطب - با ما، درمان نزدیک‌تر از همیشه</h4>
-        <button id="authButton" class="login-btn2"></button>
+        <!-- EDIT: Added a div to wrap buttons -->
+        <div class="header-buttons">
+            <!-- EDIT: Added support button -->
+            <a href="support.php" id="supportButton" class="profile-btn" style="display: none;">پشتیبانی</a>
+            <button id="authButton" class="login-btn2"></button>
+        </div>
     </header>
     <div class="search-container">
         <input type="text" class="search-box" placeholder="نام پزشک، تخصص، بیماری، مرکز درمانی...">
-        <button class="login-btn">جستجو</button>
+        <button class="login-btn" onclick="handleSearch()">جستجو</button>
     </div>
     <div class="image-gallery">
         <img src="https://i.postimg.cc/5yF47ks4/images-removebg-preview.png" alt="آزمایشگاه" class="gallery-img" onclick="openLaboratoryPage()">

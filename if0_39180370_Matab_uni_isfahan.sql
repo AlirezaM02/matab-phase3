@@ -1295,40 +1295,58 @@ CREATE TABLE `support_messages` (
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
--- First, make user with ID 1 a support staff member.
--- You must have a user with id=1 in your `users` table.
+-- First, make user with ID 1 (Ali Reza) a support staff member.
+-- This user must already exist in your `users` table.
 INSERT INTO `support_staff` (`user_id`, `is_online`, `last_active`) VALUES
 (1, 0, NULL);
 
--- Create a new ticket from user with ID 2 (Maryam Hosseini)
--- This ticket is about a payment issue.
+-- Add a second support staff member (assuming a user with ID 3 exists)
+-- Let's add a new user first for this purpose.
+INSERT INTO `users` (`id`, `username`, `email`, `password`, `full_name`, `phone`, `address`, `created_at`) VALUES
+(8, 'sara_m', 'sara.m@example.com', '$2y$10$placeholderpasswordhash', 'سارا محمدی', '09150001122', 'مشهد، بلوار سجاد', '2025-06-08 11:00:00');
+
+-- Now, make Sara Mohammadi (ID 3) a support staff member.
+INSERT INTO `support_staff` (`user_id`, `is_online`, `last_active`) VALUES
+(8, 0, NULL);
+
+
+-- TICKET 1: A standard open ticket from user Maryam (ID 2) to support.
 INSERT INTO `support_tickets` (`ticket_id`, `user_id`, `title`, `status`, `created_at`, `updated_at`) VALUES
-(1, 2, 'مشکل در پرداخت هزینه ویزیت', 'باز', '2025-06-07 10:00:00', '2025-06-07 10:00:00');
+(1, 2, 'مشکل در پرداخت هزینه ویزیت', 'در حال بررسی', '2025-06-07 10:00:00', '2025-06-07 10:05:00');
 
--- Add the first message for the ticket #1 from the user.
+-- Messages for Ticket 1
 INSERT INTO `support_messages` (`ticket_id`, `sender_id`, `sender_type`, `message`, `attachment_path`, `created_at`) VALUES
-(1, 2, 'user', 'سلام، من برای پرداخت هزینه ویزیت دکتر آقاصادقی به مشکل خوردم. سیستم خطا می‌دهد. لطفا بررسی کنید.', NULL, '2025-06-07 10:00:00');
-
--- Add a reply from support staff (user with ID 1, Ali Reza)
-INSERT INTO `support_messages` (`ticket_id`, `sender_id`, `sender_type`, `message`, `attachment_path`, `created_at`) VALUES
+(1, 2, 'user', 'سلام، من برای پرداخت هزینه ویزیت دکتر آقاصادقی به مشکل خوردم. سیستم خطا می‌دهد. لطفا بررسی کنید.', NULL, '2025-06-07 10:00:00'),
 (1, 1, 'support', 'سلام خانم حسینی عزیز. ممنون از اطلاع‌رسانی شما. در حال بررسی مشکل هستیم و به زودی نتیجه را به شما اعلام خواهیم کرد.', NULL, '2025-06-07 10:05:00');
 
--- Update the ticket status to 'In Progress' after the support reply
-UPDATE `support_tickets` SET `status` = 'در حال بررسی', `updated_at` = '2025-06-07 10:05:00' WHERE `ticket_id` = 1;
 
-
--- Create a second ticket from the same user about finding a doctor
+-- TICKET 2: A ticket that has been answered.
 INSERT INTO `support_tickets` (`ticket_id`, `user_id`, `title`, `status`, `created_at`, `updated_at`) VALUES
 (2, 2, 'عدم نمایش پزشک در لیست', 'پاسخ داده شد', '2025-06-06 15:30:00', '2025-06-06 15:35:00');
 
--- Add a message for ticket #2 from the user
+-- Messages for Ticket 2
 INSERT INTO `support_messages` (`ticket_id`, `sender_id`, `sender_type`, `message`, `attachment_path`, `created_at`) VALUES
-(2, 2, 'user', 'وقت بخیر، من تخصص ارتوپدی رو در شهر اصفهان جستجو میکنم ولی دکتر خادم سهی در لیست نمایش داده نمیشه.', NULL, '2025-06-06 15:30:00');
-
--- Add a reply for ticket #2 from support staff
-INSERT INTO `support_messages` (`ticket_id`, `sender_id`, `sender_type`, `message`, `attachment_path`, `created_at`) VALUES
+(2, 2, 'user', 'وقت بخیر، من تخصص ارتوپدی رو در شهر اصفهان جستجو میکنم ولی دکتر خادم سهی در لیست نمایش داده نمیشه.', NULL, '2025-06-06 15:30:00'),
 (2, 1, 'support', 'با سلام. این مورد بررسی شد. ظرفیت نوبت‌های آنلاین ایشان تکمیل شده است و به همین دلیل در لیست نمایش داده نمی‌شوند. می‌توانید روزهای آینده مجددا تلاش کنید.', NULL, '2025-06-06 15:35:00');
 
+
+-- TICKET 3: A closed ticket.
+INSERT INTO `support_tickets` (`ticket_id`, `user_id`, `title`, `status`, `created_at`, `updated_at`) VALUES
+(3, 2, 'سوال در مورد ساعت کاری', 'بسته شده', '2025-06-05 11:00:00', '2025-06-05 12:00:00');
+
+-- Messages for Ticket 3
+INSERT INTO `support_messages` (`ticket_id`, `sender_id`, `sender_type`, `message`, `created_at`) VALUES
+(3, 2, 'user', 'سلام، ساعت کاری مطب دکتر کتیبه رو میخواستم بدونم.', '2025-06-05 11:00:00'),
+(3, 1, 'support', 'با سلام، اطلاعات ساعت کاری پزشکان در صفحه شخصی ایشان در سایت موجود است. با جستجوی نام ایشان می‌توانید مشاهده بفرمایید.', '2025-06-05 11:05:00');
+
+
+-- TICKET 4: A new ticket with "Baz" (Open) status from user Maryam (ID 2).
+INSERT INTO `support_tickets` (`ticket_id`, `user_id`, `title`, `status`, `created_at`, `updated_at`) VALUES
+(4, 2, 'درخواست افزودن بیمه تکمیلی', 'باز', '2025-06-08 14:00:00', '2025-06-08 14:00:00');
+
+-- Message for Ticket 4
+INSERT INTO `support_messages` (`ticket_id`, `sender_id`, `sender_type`, `message`, `attachment_path`, `created_at`) VALUES
+(4, 2, 'user', 'سلام، امکانش هست که بیمه تکمیلی ما رو هم به لیست بیمه‌های طرف قرارداد اضافه کنید؟ فایل مدارک رو ضمیمه کردم.', 'uploads/support_attachments/ticket_4.pdf', '2025-06-08 14:00:00');
 
 --
 -- Indexes for dumped tables
