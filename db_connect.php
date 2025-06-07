@@ -3,9 +3,9 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 $host = 'sql111.infinityfree.com';
-$username = 'if0_38896706';
-$password = '9UEI7iubd2JscFr';
-$database = 'if0_38896706_Matab_uni_isfahan';
+$username = 'if0_39180370';
+$password = 'Ml16xIdpp44H31f';
+$database = 'if0_39180370_Matab_uni_isfahan';
 
 $conn = new mysqli($host, $username, $password, $database);
 

@@ -72,7 +72,7 @@ INSERT INTO `bookings` (`id`, `user_id`, `booking_date`, `booking_type`, `target
 CREATE TABLE `cities` (
   `id` int(11) NOT NULL,
   `name` varchar(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COLLATE=utf8mb4_general_ci;
 
 --
 -- إرجاع أو استيراد بيانات الجدول `cities`
@@ -215,7 +215,7 @@ CREATE TABLE `doctors` (
   `clinic_address` varchar(255) NOT NULL,
   `image` varchar(255) NOT NULL,
   `credential_id` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COLLATE=utf8mb4_general_ci;
 
 --
 -- إرجاع أو استيراد بيانات الجدول `doctors`
@@ -1203,7 +1203,7 @@ CREATE TABLE `specialties` (
   `id` int(11) NOT NULL,
   `name` varchar(255) NOT NULL,
   `image` varchar(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COLLATE=utf8mb4_general_ci;
 
 --
 -- إرجاع أو استيراد بيانات الجدول `specialties`
@@ -1258,6 +1258,77 @@ INSERT INTO `users` (`id`, `username`, `email`, `password`, `full_name`, `phone`
 (5, 'ahmad kassir', 'ahmadskassir2@gmail.com', '$2y$10$C0Qvs8RDNS9KF0bF57Y/gO60dcmhWQ.bUkfD6Wus/poMFSdt1C7TG', 'ahmad kassir', '09306961235', 'isfahan', '2025-04-27 11:30:13', '3474780761', '28372732'),
 (6, 'ahmadk', 'ahmad-ka100@hotmail.com', '$2y$10$XpbCzPgc/.IroHYz356iqeLG2VgODcoAcHgNCht0Fqe3gtpnf92Ku', 'ahmad kassir', '09306961235', 'isfahan', '2025-04-29 14:38:49', NULL, NULL),
 (7, 'ahmadka', 'ahmad-ka1000@hotmail.com', '$2y$10$wS7k5qLj6iOWRy5NIcvgGei8uaY3sYdlYYhtaGZB/mpTZn6nLNKBi', 'ahmad kassir', '09306961235', 'isfahan', '2025-04-29 14:40:44', '1234567', '234');
+
+-- Table for support staff members
+-- This table links to your existing 'users' table.
+CREATE TABLE `support_staff` (
+  `staff_id` INT AUTO_INCREMENT PRIMARY KEY,
+  `user_id` INT NOT NULL,
+  `is_online` TINYINT(1) DEFAULT 0,
+  `last_active` TIMESTAMP NULL,
+  UNIQUE (`user_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Table for support tickets
+-- This holds the main information for each support request.
+CREATE TABLE `support_tickets` (
+  `ticket_id` INT AUTO_INCREMENT PRIMARY KEY,
+  `user_id` INT NOT NULL,
+  `title` VARCHAR(255) NOT NULL,
+  `status` ENUM('باز', 'در حال بررسی', 'پاسخ داده شد', 'بسته شده') DEFAULT 'باز',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Table for messages within each ticket
+-- This stores the conversation history for a ticket.
+CREATE TABLE `support_messages` (
+  `message_id` INT AUTO_INCREMENT PRIMARY KEY,
+  `ticket_id` INT NOT NULL,
+  `sender_id` INT NOT NULL,
+  `sender_type` ENUM('user', 'support') NOT NULL,
+  `message` TEXT,
+  `attachment_path` VARCHAR(255) NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`ticket_id`) REFERENCES `support_tickets`(`ticket_id`) ON DELETE CASCADE
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- First, make user with ID 1 a support staff member.
+-- You must have a user with id=1 in your `users` table.
+INSERT INTO `support_staff` (`user_id`, `is_online`, `last_active`) VALUES
+(1, 0, NULL);
+
+-- Create a new ticket from user with ID 2 (Maryam Hosseini)
+-- This ticket is about a payment issue.
+INSERT INTO `support_tickets` (`ticket_id`, `user_id`, `title`, `status`, `created_at`, `updated_at`) VALUES
+(1, 2, 'مشکل در پرداخت هزینه ویزیت', 'باز', '2025-06-07 10:00:00', '2025-06-07 10:00:00');
+
+-- Add the first message for the ticket #1 from the user.
+INSERT INTO `support_messages` (`ticket_id`, `sender_id`, `sender_type`, `message`, `attachment_path`, `created_at`) VALUES
+(1, 2, 'user', 'سلام، من برای پرداخت هزینه ویزیت دکتر آقاصادقی به مشکل خوردم. سیستم خطا می‌دهد. لطفا بررسی کنید.', NULL, '2025-06-07 10:00:00');
+
+-- Add a reply from support staff (user with ID 1, Ali Reza)
+INSERT INTO `support_messages` (`ticket_id`, `sender_id`, `sender_type`, `message`, `attachment_path`, `created_at`) VALUES
+(1, 1, 'support', 'سلام خانم حسینی عزیز. ممنون از اطلاع‌رسانی شما. در حال بررسی مشکل هستیم و به زودی نتیجه را به شما اعلام خواهیم کرد.', NULL, '2025-06-07 10:05:00');
+
+-- Update the ticket status to 'In Progress' after the support reply
+UPDATE `support_tickets` SET `status` = 'در حال بررسی', `updated_at` = '2025-06-07 10:05:00' WHERE `ticket_id` = 1;
+
+
+-- Create a second ticket from the same user about finding a doctor
+INSERT INTO `support_tickets` (`ticket_id`, `user_id`, `title`, `status`, `created_at`, `updated_at`) VALUES
+(2, 2, 'عدم نمایش پزشک در لیست', 'پاسخ داده شد', '2025-06-06 15:30:00', '2025-06-06 15:35:00');
+
+-- Add a message for ticket #2 from the user
+INSERT INTO `support_messages` (`ticket_id`, `sender_id`, `sender_type`, `message`, `attachment_path`, `created_at`) VALUES
+(2, 2, 'user', 'وقت بخیر، من تخصص ارتوپدی رو در شهر اصفهان جستجو میکنم ولی دکتر خادم سهی در لیست نمایش داده نمیشه.', NULL, '2025-06-06 15:30:00');
+
+-- Add a reply for ticket #2 from support staff
+INSERT INTO `support_messages` (`ticket_id`, `sender_id`, `sender_type`, `message`, `attachment_path`, `created_at`) VALUES
+(2, 1, 'support', 'با سلام. این مورد بررسی شد. ظرفیت نوبت‌های آنلاین ایشان تکمیل شده است و به همین دلیل در لیست نمایش داده نمی‌شوند. می‌توانید روزهای آینده مجددا تلاش کنید.', NULL, '2025-06-06 15:35:00');
+
 
 --
 -- Indexes for dumped tables
